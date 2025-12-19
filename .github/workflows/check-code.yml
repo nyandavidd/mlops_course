@@ -1,0 +1,38 @@
+name: Basic CI Check
+
+# Когда запускать этот пайплайн?
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Виртуальная машина на Linux
+
+    steps:
+    # 1. Скачиваем твой код на виртуальную машину
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Устанавливаем Python
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    # 3. Устанавливаем зависимости из requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Дополнительно ставим pylint для проверки качества кода
+        pip install pylint
+
+    # 4. Проверяем код линтером (поиск ошибок синтаксиса)
+    - name: Lint with Pylint
+      # Запускаем проверку для всех .py файлов в папке src
+      # --errors-only покажет только критические ошибки, чтобы не спамить
+      run: |
+        pylint --errors-only src/
