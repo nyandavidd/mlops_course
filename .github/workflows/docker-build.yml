@@ -1,0 +1,31 @@
+name: Docker Build & Test
+
+# Запускаем сборку при каждом пуше в ветку main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 1. Скачиваем код репозитория
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Настраиваем окружение для сборки Docker
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # 3. Пробуем собрать образ
+    # Если Dockerfile написан с ошибкой, здесь процесс упадет
+    - name: Build Docker Image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false # Мы не публикуем образ, только проверяем сборку
+        tags: real-estate-app:latest
