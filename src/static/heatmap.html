@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тепловая карта цен на недвижимость</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=484800da-591a-4991-8a20-010f910fe8e4&lang=ru_RU" type="text/javascript"></script>
+    <script src="https://yastatic.net/s3/mapsapi-jslibs/heatmap/0.0.1/heatmap.min.js" type="text/javascript"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        .controls {
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2 style="margin: 0; font-size: 20px;">Тепловая карта цен на недвижимость в Санкт-Петербурге</h2>
+    </div>
+    <div id="map"></div>
+    <div id="loading" class="loading" style="display: none;">Загрузка данных...</div>
+
+    <script>
+        // Функция для загрузки данных из JSON файла
+        async function loadHeatmapData() {
+            try {
+                const response = await fetch('interpolated_prices.json');
+                const data = await response.json();
+                if (!data.interpolation || !data.interpolation.points) {
+                    console.error('Неверный формат данных:', data);
+                    return [];
+                }
+                console.log('Загружено точек:', data.interpolation.points.length);
+                return data.interpolation.points;
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                return [];
+            }
+        }
+
+        // Функция для создания тепловой карты
+        let heatmap = null;  // Делаем heatmap глобальной переменной
+
+        function createHeatmap(map, points, Heatmap) {
+            if (!points || points.length === 0) {
+                console.warn('Нет данных для тепловой карты');
+                return;
+            }
+
+            // Находим минимальную и максимальную цены
+            let minPrice = Infinity;
+            let maxPrice = -Infinity;
+            
+            points.forEach(point => {
+                const price = parseFloat(point[2]);
+                if (!isNaN(price)) {
+                    minPrice = Math.min(minPrice, price);
+                    maxPrice = Math.max(maxPrice, price);
+                }
+            });
+
+            console.log('Диапазон цен:', minPrice, 'до', maxPrice);
+
+            // Преобразуем данные для тепловой карты
+            const logMinPrice = Math.log(minPrice);
+            const logMaxPrice = Math.log(maxPrice);
+            const logRange = logMaxPrice - logMinPrice;
+
+            const heatmapPoints = points.map(point => {
+                const lon = parseFloat(point[0]);
+                const lat = parseFloat(point[1]);
+                const price = parseFloat(point[2]);
+
+                if (!isNaN(price) && !isNaN(lat) && !isNaN(lon)) {
+                    const normalizedPrice = (Math.log(price) - logMinPrice) / logRange;
+                    return {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [lon, lat]
+                        },
+                        properties: {
+                            weight: normalizedPrice
+                        }
+                    };
+                }
+                return null;
+            }).filter(point => point !== null);
+
+            console.log('Подготовлено точек для тепловой карты:', heatmapPoints.length);
+
+            // Функция для обновления радиуса точек в зависимости от масштаба
+            function updateHeatmapRadius(zoom) {
+                if (!heatmap) return;
+                
+                // Настраиваем радиус в зависимости от масштаба
+                let radius;
+                if (zoom <= 10) {
+                    radius = 30;   // Маленькие точки для отдаленного масштаба
+                } else if (zoom <= 12) {
+                    radius = 50;   // Средние точки для среднего масштаба
+                } else if (zoom <= 14) {
+                    radius = 75;   // Большие точки для крупного масштаба
+                } else {
+                    radius = 100;  // Самые большие точки для детального масштаба
+                }
+                
+                heatmap.setOptions({ radius: radius });
+                console.log('Обновлен радиус точек:', radius, 'для масштаба:', zoom);
+            }
+
+            // Создаем тепловую карту
+            heatmap = new Heatmap({
+                type: 'FeatureCollection',
+                features: heatmapPoints
+            }, {
+                radius: 50,                // Начальный радиус
+                dissipating: true,         // Включаем рассеивание
+                opacity: 0.8,             // Увеличенная непрозрачность
+                intensityOfMidpoint: 0.05, // Уменьшенная интенсивность средней точки
+                gradient: {
+                    0.0: 'rgba(0, 0, 255, 0.6)',      // Синий для самых дешевых
+                    0.2: 'rgba(0, 128, 255, 0.6)',    // Голубой
+                    0.3: 'rgba(0, 255, 128, 0.6)',    // Бирюзовый
+                    0.4: 'rgba(0, 255, 0, 0.6)',      // Зеленый
+                    0.5: 'rgba(128, 255, 0, 0.6)',    // Салатовый
+                    0.6: 'rgba(255, 255, 0, 0.6)',    // Желтый
+                    0.7: 'rgba(255, 192, 0, 0.6)',    // Золотистый
+                    0.8: 'rgba(255, 128, 0, 0.6)',    // Оранжевый
+                    0.9: 'rgba(255, 64, 0, 0.6)',     // Красно-оранжевый
+                    1.0: 'rgba(255, 0, 0, 0.6)'       // Красный для самых дорогих
+                }
+            });
+
+            // Добавляем тепловую карту на карту
+            heatmap.setMap(map);
+            console.log('Тепловая карта добавлена на карту');
+
+            // Устанавливаем начальный радиус в зависимости от текущего масштаба
+            updateHeatmapRadius(map.getZoom());
+
+            // Добавляем обработчик изменения масштаба
+            map.events.add('zoomchange', function() {
+                updateHeatmapRadius(map.getZoom());
+            });
+        }
+
+        // Инициализация карты
+        ymaps.ready(async function() {
+            // Показываем индикатор загрузки
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                // Загружаем модуль тепловой карты
+                await new Promise((resolve, reject) => {
+                    ymaps.modules.require(['Heatmap'], function(Heatmap) {
+                        window.Heatmap = Heatmap;
+                        resolve();
+                    }, reject);
+                });
+
+                // Координаты центра Санкт-Петербурга
+                const defaultCoords = [59.93863, 30.31413];
+                
+                // Создаем карту
+                const map = new ymaps.Map("map", {
+                    center: defaultCoords,
+                    zoom: 11,
+                    controls: ['zoomControl', 'fullscreenControl']
+                });
+
+                // Загружаем данные
+                const points = await loadHeatmapData();
+                
+                // Создаем тепловую карту
+                createHeatmap(map, points, window.Heatmap);
+            } catch (error) {
+                console.error('Ошибка при создании тепловой карты:', error);
+            } finally {
+                // Скрываем индикатор загрузки
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 

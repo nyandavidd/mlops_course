@@ -1,0 +1,138 @@
+#map {
+    height: 400px;
+    width: 100%;
+}
+
+.year-slider-container {
+    position: relative;
+    width: 100%;
+    margin: 10px 0;
+}
+
+.year-slider {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.year-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+}
+
+.year-slider-label {
+    position: relative;
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+}
+
+.year-value {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 2px;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 10px;
+}
+
+.form-label {
+    margin-bottom: 0;
+    font-size: 14px;
+    min-width: 200px;
+    flex-shrink: 0;
+}
+
+.form-select, .form-control {
+    flex-grow: 1;
+    padding: 4px 8px;
+    font-size: 14px;
+    margin-bottom: 0;
+    height: auto;
+}
+
+.mb-3 {
+    margin-bottom: 8px !important;
+}
+
+.btn-primary {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.container {
+    padding-top: 20px; 
+    padding-bottom: 20px;
+}
+
+h1, .prediction-result {
+    margin-bottom: 15px !important;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.prediction-result {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.year-slider-container .form-label {
+    margin-bottom: 5px;
+    display: block;
+    min-width: auto;
+}
+
+.year-slider-container .form-group {
+    display: block;
+}
+
+.submit-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+
+.alert {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+@media (max-width: 768px) {
+    .form-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+    
+    .form-label {
+        min-width: auto;
+        margin-bottom: 5px;
+    }
+    
+    .year-slider-labels {
+        font-size: 10px;
+    }
+    
+    .year-value {
+        font-size: 12px;
+    }
+    
+    h1, .prediction-result {
+        font-size: 24px;
+    }
+} 
